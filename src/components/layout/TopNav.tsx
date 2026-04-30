@@ -27,9 +27,13 @@ const roleIcon: Record<
 export function TopNav() {
   const { role, setRole, currentUser, openAI, openQuickLog } = useAppState();
   return (
-    <header className="h-14 border-b border-ink-200 bg-white/95 backdrop-blur sticky top-0 z-30 flex items-center px-4 gap-3">
+    <header className="h-14 bg-white sticky top-0 z-30 flex items-center px-4 gap-3 relative">
+      {/* Brand accent line — narrow teal underline below the bar */}
+      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-brand-300/50 via-brand-500/30 to-transparent" />
+      <div className="absolute bottom-px inset-x-0 h-px bg-ink-200" />
+
       <div className="md:hidden flex items-center gap-2 mr-2">
-        <div className="h-7 w-7 rounded-md bg-brand-800 flex items-center justify-center">
+        <div className="h-7 w-7 rounded-md bg-ink-900 flex items-center justify-center">
           <svg viewBox="0 0 32 32" className="h-4 w-4">
             <path
               d="M9 16 L14 21 L23 11"
@@ -41,8 +45,8 @@ export function TopNav() {
             />
           </svg>
         </div>
-        <span className="text-sm font-semibold text-ink-900">
-          Onboarding Portal
+        <span className="text-sm font-semibold text-ink-900 display">
+          Onboarding
         </span>
       </div>
 
@@ -61,20 +65,21 @@ export function TopNav() {
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        {/* Role switcher — 4 roles */}
-        <div className="hidden md:flex items-center bg-ink-100 p-0.5 rounded-lg text-xs font-medium">
+        {/* Role switcher — pill style, distinct from the sales app's tab style */}
+        <div className="hidden md:flex items-center bg-ink-100 p-0.5 rounded-full text-xs font-medium ring-1 ring-ink-200">
           {(["sales", "onboarding", "implementation", "success"] as Role[]).map(
             (r) => {
               const Icon = roleIcon[r];
+              const active = role === r;
               return (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setRole(r)}
                   title={roleLabel[r]}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
-                    role === r
-                      ? "bg-white text-ink-900 shadow-card"
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
+                    active
+                      ? "bg-ink-900 text-white shadow-sm"
                       : "text-ink-500 hover:text-ink-800"
                   }`}
                 >

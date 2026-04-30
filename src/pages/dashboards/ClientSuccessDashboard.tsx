@@ -43,13 +43,15 @@ export function ClientSuccessDashboard() {
     <div className="space-y-5">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <div className="text-[12px] text-ink-500">
-            Welcome back, {currentUser.name.split(" ")[0]} · CSM view
+          <div className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.12em] text-brand-700 font-semibold mb-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-500 inline-block" />
+            Operations desk · Client Success
           </div>
-          <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">
+          <h1 className="text-3xl font-semibold text-ink-900 tracking-tight">
             Client success readiness
           </h1>
-          <p className="text-sm text-ink-500 mt-0.5">
+          <p className="text-sm text-ink-500 mt-1">
+            Welcome back, {currentUser?.name.split(" ")[0]}.{" "}
             <span className="font-semibold text-ink-700">{inProgress.length}</span>{" "}
             in onboarding ·{" "}
             <span className="font-semibold text-ink-700">

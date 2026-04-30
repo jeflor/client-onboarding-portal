@@ -43,7 +43,7 @@ export function TeamPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">
+        <h1 className="text-3xl font-semibold text-ink-900 tracking-tight">
           Team
         </h1>
         <p className="text-sm text-ink-500 mt-0.5">

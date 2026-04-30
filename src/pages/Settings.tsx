@@ -9,7 +9,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-5 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">
+        <h1 className="text-3xl font-semibold text-ink-900 tracking-tight">
           Settings
         </h1>
         <p className="text-sm text-ink-500 mt-0.5">

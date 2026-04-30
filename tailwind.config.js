@@ -4,6 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
+        // Body stays Inter — proven for dense data UI
         sans: [
           "Inter",
           "ui-sans-serif",
@@ -11,6 +12,14 @@ export default {
           "-apple-system",
           "Segoe UI",
           "Roboto",
+          "sans-serif",
+        ],
+        // Distinctive headings — geometric, slightly architectural
+        display: [
+          "Space Grotesk",
+          "Inter",
+          "ui-sans-serif",
+          "system-ui",
           "sans-serif",
         ],
         mono: [
@@ -22,30 +31,31 @@ export default {
         ],
       },
       colors: {
+        // Slightly cooler, more "operations" gray than the sales app's neutral
         ink: {
-          50: "#f7f8fa",
-          100: "#eef0f4",
-          200: "#dde1e9",
-          300: "#bfc6d4",
-          400: "#8d97aa",
-          500: "#5e6878",
-          600: "#434c5c",
-          700: "#2f3645",
-          800: "#1f2533",
-          900: "#141826",
+          50: "#f5f7fa",
+          100: "#eaeef4",
+          200: "#d6dde8",
+          300: "#b3becf",
+          400: "#7d8ba3",
+          500: "#536179",
+          600: "#3b475c",
+          700: "#283346",
+          800: "#16202f",
+          900: "#0b1424",
         },
-        // teal-leaning brand to differentiate from sales pipeline (blue)
+        // Deep teal brand — saturated and confident
         brand: {
           50: "#ecfeff",
           100: "#cffafe",
           200: "#a5f3fc",
           300: "#67e8f9",
           400: "#22d3ee",
-          500: "#0ea5b7",
-          600: "#0e8a99",
-          700: "#0e6e7c",
-          800: "#155e69",
-          900: "#164e58",
+          500: "#06b6d4",
+          600: "#0891b2",
+          700: "#0e7490",
+          800: "#155e75",
+          900: "#164e63",
         },
         success: {
           50: "#ecfdf5",
@@ -68,8 +78,8 @@ export default {
           600: "#dc2626",
           700: "#b91c1c",
         },
+        // Warm orange accent — used sparingly for "waiting on client" energy
         accent: {
-          // amber accent for "waiting on client" state
           50: "#fff7ed",
           100: "#ffedd5",
           500: "#f97316",
@@ -78,13 +88,24 @@ export default {
         },
       },
       boxShadow: {
-        card: "0 1px 2px 0 rgba(16, 24, 40, 0.04), 0 1px 3px 0 rgba(16, 24, 40, 0.06)",
-        pop: "0 8px 24px -8px rgba(16, 24, 40, 0.18), 0 2px 6px -1px rgba(16, 24, 40, 0.08)",
+        card: "0 1px 2px 0 rgba(11, 20, 36, 0.04), 0 1px 3px 0 rgba(11, 20, 36, 0.05)",
+        pop: "0 12px 28px -10px rgba(11, 20, 36, 0.18), 0 2px 6px -1px rgba(11, 20, 36, 0.08)",
         drawer:
-          "-12px 0 32px -12px rgba(16, 24, 40, 0.18), -2px 0 8px -2px rgba(16, 24, 40, 0.08)",
+          "-12px 0 32px -12px rgba(11, 20, 36, 0.22), -2px 0 8px -2px rgba(11, 20, 36, 0.10)",
+        // Sidebar gets its own deep shadow to make it feel "lifted" from page
+        rail: "2px 0 14px -4px rgba(11, 20, 36, 0.4)",
       },
       borderRadius: {
-        xl: "0.875rem",
+        // Slightly less rounded than the sales app — more "operational/serious"
+        xl: "0.75rem",
+      },
+      backgroundImage: {
+        // Subtle dot pattern for the page background — operational, not flat
+        "ops-dots":
+          "radial-gradient(circle at 1px 1px, rgba(83, 97, 121, 0.10) 1px, transparent 0)",
+      },
+      backgroundSize: {
+        "ops-dots": "20px 20px",
       },
     },
   },

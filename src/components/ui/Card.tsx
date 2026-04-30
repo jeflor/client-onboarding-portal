@@ -1,16 +1,34 @@
 import type { ReactNode } from "react";
 
+type Accent = "brand" | "warning" | "danger" | "success" | "orange" | "none";
+
 export function Card({
   children,
   className = "",
   pad = true,
+  accent = "none",
 }: {
   children: ReactNode;
   className?: string;
   pad?: boolean;
+  accent?: Accent;
 }) {
+  const accentClass =
+    accent === "brand"
+      ? "card-accent"
+      : accent === "warning"
+        ? "card-accent-warning"
+        : accent === "danger"
+          ? "card-accent-danger"
+          : accent === "success"
+            ? "card-accent-success"
+            : accent === "orange"
+              ? "card-accent-orange"
+              : "card";
   return (
-    <div className={`card ${pad ? "card-pad" : ""} ${className}`}>{children}</div>
+    <div className={`${accentClass} ${pad ? "card-pad" : ""} ${className}`}>
+      {children}
+    </div>
   );
 }
 
@@ -29,7 +47,9 @@ export function CardHeader({
     <div className="flex items-start justify-between gap-4 mb-4">
       <div>
         {eyebrow && <div className="h-eyebrow mb-1">{eyebrow}</div>}
-        <h3 className="text-base font-semibold text-ink-900">{title}</h3>
+        <h3 className="text-base font-semibold text-ink-900 display tracking-tight">
+          {title}
+        </h3>
         {description && (
           <p className="text-sm text-ink-500 mt-0.5">{description}</p>
         )}

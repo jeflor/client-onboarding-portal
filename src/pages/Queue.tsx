@@ -47,7 +47,7 @@ export function QueuePage() {
     <div className="space-y-4">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">
+          <h1 className="text-3xl font-semibold text-ink-900 tracking-tight">
             Onboarding queue
           </h1>
           <p className="text-sm text-ink-500 mt-0.5">
