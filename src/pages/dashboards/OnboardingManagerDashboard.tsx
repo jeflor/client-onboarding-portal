@@ -1,4 +1,4 @@
-import { Calendar, Filter, Sparkles } from "lucide-react";
+import { Calendar, Filter, Sparkles, Swords } from "lucide-react";
 import { useStore } from "../../state/DataStore";
 import { useAppState } from "../../state/AppState";
 import { Kpi } from "../../components/dashboard/Kpi";
@@ -6,6 +6,7 @@ import { HealthBoard } from "../../components/dashboard/HealthBoard";
 import { PriorityQueue } from "../../components/dashboard/PriorityQueue";
 import { AtRiskTable } from "../../components/dashboard/AtRiskTable";
 import { HandoffTimeline } from "../../components/dashboard/HandoffTimeline";
+import { conflictsByClient, aiDetectionsByClient } from "../../data/mess";
 
 export function OnboardingManagerDashboard() {
   const store = useStore();
@@ -77,6 +78,39 @@ export function OnboardingManagerDashboard() {
               blocked on legal. ~$212k of bookings at risk this week.
             </span>
           </div>
+          {/* Cross-functional tension synthesis */}
+          {(() => {
+            const allOpenConflicts = Object.values(conflictsByClient)
+              .flat()
+              .filter((c) => c.status === "open" || c.status === "in_discussion");
+            const allHighDetections = Object.values(aiDetectionsByClient)
+              .flat()
+              .filter((d) => d.weight === "high");
+            return (
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 text-[12px] text-danger-700 bg-danger-50/60 ring-1 ring-danger-100 rounded-md px-2 py-0.5">
+                  <Swords className="h-3 w-3" />
+                  <span>
+                    <span className="font-semibold">
+                      {allOpenConflicts.length} cross-fn conflicts open
+                    </span>{" "}
+                    across {new Set(allOpenConflicts.map((c) => c.clientId)).size}{" "}
+                    accounts
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 text-[12px] text-brand-700 bg-brand-50/60 ring-1 ring-brand-100 rounded-md px-2 py-0.5">
+                  <Sparkles className="h-3 w-3" />
+                  <span>
+                    AI caught{" "}
+                    <span className="font-semibold">
+                      {allHighDetections.length} high-priority
+                    </span>{" "}
+                    things your team may have missed
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2">
           <button className="btn-secondary" type="button">

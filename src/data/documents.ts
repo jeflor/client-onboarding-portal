@@ -2,7 +2,7 @@ import type { ClientDocument } from "./types";
 import { daysAgo } from "./time";
 
 export const documents: ClientDocument[] = [
-  // Helix Robotics
+  // ========== Helix Robotics — version chaos + duplicate ==========
   {
     id: "d-7001",
     clientId: "C-2041",
@@ -13,29 +13,95 @@ export const documents: ClientDocument[] = [
     at: daysAgo(17),
     size: "412 KB",
     required: true,
+    versions: [
+      {
+        id: "v-7001-1",
+        versionLabel: "v1",
+        uploadedBy: "om_avery",
+        at: daysAgo(20),
+        size: "398 KB",
+        note: "Initial draft sent to Helix legal",
+      },
+      {
+        id: "v-7001-2",
+        versionLabel: "v2",
+        uploadedBy: "om_avery",
+        at: daysAgo(18),
+        size: "405 KB",
+        note: "Revised after first redline pass",
+      },
+      {
+        id: "v-7001-3",
+        versionLabel: "v3 · final",
+        uploadedBy: "om_avery",
+        at: daysAgo(17),
+        size: "412 KB",
+        note: "Signed",
+        current: true,
+      },
+    ],
   },
   {
     id: "d-7002",
     clientId: "C-2041",
     name: "DPA-v3-redlines.docx",
     kind: "dpa",
-    status: "pending_review",
+    status: "revision_requested",
     uploadedBy: "om_avery",
     at: daysAgo(7),
     size: "188 KB",
     required: true,
     note: "With Helix counsel · 7d",
+    revisionNotes:
+      "Helix counsel pushed back on indemnity cap. Awaiting their v4 markup.",
+    versions: [
+      {
+        id: "v-7002-1",
+        versionLabel: "v1",
+        uploadedBy: "om_avery",
+        at: daysAgo(15),
+        note: "First draft",
+      },
+      {
+        id: "v-7002-2",
+        versionLabel: "v2",
+        uploadedBy: "om_avery",
+        at: daysAgo(11),
+        note: "Their counsel asked for uncapped IP indemnity",
+      },
+      {
+        id: "v-7002-3",
+        versionLabel: "v3",
+        uploadedBy: "om_avery",
+        at: daysAgo(7),
+        note: "We countered with 2× ACV",
+        current: true,
+      },
+    ],
   },
   {
     id: "d-7003",
     clientId: "C-2041",
-    name: "Helix-Kickoff-Notes.pdf",
+    name: "Helix-Kickoff-Notes-v3.pdf",
     kind: "kickoff_doc",
     status: "approved",
     uploadedBy: "om_avery",
     at: daysAgo(15),
     size: "84 KB",
     required: true,
+  },
+  {
+    id: "d-7003b",
+    clientId: "C-2041",
+    name: "Helix-Kickoff-Notes-v3-FINAL.pdf",
+    kind: "kickoff_doc",
+    status: "duplicate",
+    uploadedBy: "om_avery",
+    at: daysAgo(14),
+    size: "86 KB",
+    required: false,
+    flaggedReason:
+      "Possible duplicate of 'Helix-Kickoff-Notes-v3.pdf' — naming differs only in '-FINAL'. Reconcile.",
   },
   {
     id: "d-7004",
@@ -47,6 +113,18 @@ export const documents: ClientDocument[] = [
     at: daysAgo(16),
     size: "52 KB",
     required: true,
+  },
+  {
+    id: "d-7004b",
+    clientId: "C-2041",
+    name: "Tax exemption form · 2025",
+    kind: "signed_form",
+    status: "expired",
+    uploadedBy: "om_avery",
+    at: daysAgo(180),
+    size: "44 KB",
+    required: true,
+    note: "Expired Q1 — needs renewal from client procurement",
   },
   {
     id: "d-7005",
@@ -64,11 +142,14 @@ export const documents: ClientDocument[] = [
     clientId: "C-2041",
     name: "Admin user list",
     kind: "intake_form",
-    status: "missing",
+    status: "client_says_sent",
     required: true,
-    note: "Awaiting from Jamie (IT)",
+    uploadedByClient: true,
+    expectedBy: daysAgo(3),
+    note: "Jamie said 'IT will export this week' — nothing arrived. May have gone to wrong endpoint.",
   },
-  // Brightlane
+
+  // ========== Brightlane — missing + reconciliation ==========
   {
     id: "d-7010",
     clientId: "C-2038",
@@ -94,41 +175,72 @@ export const documents: ClientDocument[] = [
   {
     id: "d-7012",
     clientId: "C-2038",
-    name: "Brand kit (logo, colors, type)",
+    name: "Brand kit · logo + colors",
     kind: "asset",
-    status: "missing",
+    status: "low_quality",
+    uploadedBy: "om_avery",
+    at: daysAgo(2),
+    size: "4.2 MB",
     required: true,
-    note: "Requested 4d ago",
+    uploadedByClient: true,
+    flaggedReason:
+      "Logo file is 240×80 px JPG with white background — too low-res for hero placement, no transparent version. Need vector or 2000px PNG.",
+    note: "Asked Renée for vector source.",
   },
   {
     id: "d-7013",
     clientId: "C-2038",
     name: "Intake form (HIPAA section)",
     kind: "intake_form",
-    status: "missing",
+    status: "client_says_sent",
     required: true,
-    note: "Requested 6d ago — past due",
+    uploadedByClient: true,
+    expectedBy: daysAgo(6),
+    note: "Renée: 'sent it Tuesday via DocuSign.' No envelope received. Inbox/spam clean. Open reconciliation.",
   },
   {
     id: "d-7014",
     clientId: "C-2038",
-    name: "Sample CX tickets (CSV)",
+    name: "Sample CX tickets · 50 records",
     kind: "asset",
-    status: "missing",
+    status: "wrong_format",
+    uploadedBy: "om_avery",
+    at: daysAgo(4),
+    size: "2 KB",
     required: true,
+    uploadedByClient: true,
+    flaggedReason:
+      "Got 3 rows in PDF format. Need 50 rows in CSV with the schema we shared.",
+    note: "Re-asked yesterday.",
   },
   {
     id: "d-7015",
     clientId: "C-2038",
     name: "SOC 2 packet (sent to CISO)",
     kind: "implementation_doc",
-    status: "pending_review",
+    status: "revision_requested",
     uploadedBy: "imp_dante",
     at: daysAgo(2),
     size: "2.1 MB",
     required: true,
+    revisionNotes:
+      "Daniel (CISO) needs explicit data residency for PHI + subprocessor list. Sending v2 EOD.",
   },
-  // Aldridge — late-stage messy
+  {
+    id: "d-7016",
+    clientId: "C-2038",
+    name: "Daniel-CISO-credentials.txt",
+    kind: "implementation_doc",
+    status: "credentials_insecure",
+    uploadedBy: "imp_dante",
+    at: daysAgo(3),
+    size: "1 KB",
+    required: false,
+    flaggedReason:
+      "Credentials sent in plain-text email. Auto-flagged. Resend via secure share, then delete.",
+  },
+
+  // ========== Aldridge — missing + expired ==========
   {
     id: "d-7020",
     clientId: "C-2034",
@@ -143,13 +255,32 @@ export const documents: ClientDocument[] = [
   {
     id: "d-7021",
     clientId: "C-2034",
-    name: "Implementation scope (multi-site)",
+    name: "Implementation scope · multi-site (rejected v1)",
     kind: "implementation_doc",
-    status: "approved",
+    status: "wrong_version",
     uploadedBy: "imp_kenji",
     at: daysAgo(20),
     size: "1.1 MB",
     required: true,
+    flaggedReason:
+      "v1 was the rejected version. v2 was approved, but v1 is still showing as the default download. Risk: someone shares the wrong link.",
+    versions: [
+      {
+        id: "v-7021-1",
+        versionLabel: "v1",
+        uploadedBy: "imp_kenji",
+        at: daysAgo(22),
+        note: "Rejected — missing OEE definition",
+      },
+      {
+        id: "v-7021-2",
+        versionLabel: "v2 · approved",
+        uploadedBy: "imp_kenji",
+        at: daysAgo(18),
+        note: "Approved",
+        current: true,
+      },
+    ],
   },
   {
     id: "d-7022",
@@ -161,26 +292,31 @@ export const documents: ClientDocument[] = [
     at: daysAgo(15),
     size: "640 KB",
     required: true,
+    uploadedByClient: true,
   },
   {
     id: "d-7023",
     clientId: "C-2034",
-    name: "Plant data sample · Site B",
+    name: "Plant data sample · Site B (legacy export format)",
     kind: "asset",
     status: "expired",
     uploadedBy: "om_avery",
     at: daysAgo(40),
     size: "612 KB",
     required: true,
-    note: "Older format — needs re-export",
+    uploadedByClient: true,
+    note: "Older format · client switched MES vendor since. Need re-export.",
   },
   {
     id: "d-7024",
     clientId: "C-2034",
     name: "Plant data sample · Site C",
     kind: "asset",
-    status: "missing",
+    status: "client_says_sent",
     required: true,
+    uploadedByClient: true,
+    expectedBy: daysAgo(8),
+    note: "Theo's team says they uploaded weeks ago. Possible they sent to wrong endpoint. Reconciling.",
   },
   {
     id: "d-7025",
@@ -192,13 +328,35 @@ export const documents: ClientDocument[] = [
     at: daysAgo(6),
     size: "92 KB",
     required: true,
-    note: "v3 — kickoff was rescheduled twice",
+    note: "v3 — kickoff was rescheduled twice, hence the version count",
+    versions: [
+      {
+        id: "v-7025-1",
+        versionLabel: "v1 (4/12 cancelled)",
+        at: daysAgo(20),
+        note: "Original — kickoff cancelled, Theo travel",
+      },
+      {
+        id: "v-7025-2",
+        versionLabel: "v2 (4/19 cancelled)",
+        at: daysAgo(13),
+        note: "Re-scheduled — Theo cancelled day-of",
+      },
+      {
+        id: "v-7025-3",
+        versionLabel: "v3 (4/24 held)",
+        at: daysAgo(6),
+        note: "Held with mid-level only",
+        current: true,
+      },
+    ],
   },
-  // Lumen
+
+  // ========== Lumen — clean ==========
   {
     id: "d-7030",
     clientId: "C-2031",
-    name: "Pilot terms - 90 day extension.docx",
+    name: "Pilot terms · 90 day extension.docx",
     kind: "signed_form",
     status: "approved",
     uploadedBy: "om_priya",
@@ -216,6 +374,7 @@ export const documents: ClientDocument[] = [
     at: daysAgo(13),
     size: "8.2 MB",
     required: true,
+    uploadedByClient: true,
   },
   {
     id: "d-7032",
@@ -228,7 +387,8 @@ export const documents: ClientDocument[] = [
     size: "44 KB",
     required: true,
   },
-  // Pacific Ridge
+
+  // ========== Pacific Ridge — friction ==========
   {
     id: "d-7040",
     clientId: "C-2042",
@@ -243,12 +403,32 @@ export const documents: ClientDocument[] = [
   {
     id: "d-7041",
     clientId: "C-2042",
-    name: "Routing config files (current state)",
+    name: "Routing config files · current state",
     kind: "asset",
-    status: "missing",
+    status: "wrong_format",
+    uploadedBy: "om_avery",
+    at: daysAgo(2),
+    size: "1.2 MB",
     required: true,
+    uploadedByClient: true,
+    flaggedReason:
+      "Got a screenshot of the routing UI. Need the JSON exports — engineering can't size scope without them.",
+    note: "Re-asked Owen.",
   },
-  // Cypress
+  {
+    id: "d-7042",
+    clientId: "C-2042",
+    name: "NDA · expired",
+    kind: "signed_form",
+    status: "expired",
+    uploadedBy: "sales_jordan",
+    at: daysAgo(95),
+    size: "38 KB",
+    required: true,
+    note: "Signed at sales stage, expired. Need a re-sign for ongoing implementation context.",
+  },
+
+  // ========== Cypress — clean ==========
   {
     id: "d-7050",
     clientId: "C-2029",
@@ -271,7 +451,8 @@ export const documents: ClientDocument[] = [
     size: "188 KB",
     required: true,
   },
-  // Lattice
+
+  // ========== Lattice — missing W-9 ==========
   {
     id: "d-7060",
     clientId: "C-2046",
@@ -290,8 +471,11 @@ export const documents: ClientDocument[] = [
     kind: "w9",
     status: "missing",
     required: true,
+    expectedBy: daysAgo(1),
+    note: "Standard turnaround is 24-48h. Day 4. Will flag at kickoff Friday.",
   },
-  // Granite Peak
+
+  // ========== Granite Peak — fresh ==========
   {
     id: "d-7070",
     clientId: "C-2052",
@@ -310,8 +494,11 @@ export const documents: ClientDocument[] = [
     kind: "intake_form",
     status: "missing",
     required: true,
+    expectedBy: daysAgo(0),
+    note: "Will be sent at kickoff scheduling.",
   },
-  // Trailhead
+
+  // ========== Trailhead ==========
   {
     id: "d-7080",
     clientId: "C-2053",

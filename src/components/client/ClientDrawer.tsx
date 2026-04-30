@@ -41,6 +41,9 @@ import type {
   OnboardingStage,
   ApprovalStatus,
   DocumentStatus,
+  CrossFunctionalConflict,
+  ReconciliationItem,
+  AIDetection,
 } from "../../data/types";
 import { Avatar } from "../ui/Avatar";
 import { Badge, HealthBadge } from "../ui/Badge";
@@ -52,12 +55,20 @@ import {
 import { AIHint } from "../ai/AIHint";
 import type { TeamMember } from "../../data/types";
 import { fmtDate, fmtMoneyFull, relativeTime } from "../../lib/format";
+import {
+  conflictsByClient,
+  reconciliationByClient,
+  aiDetectionsByClient,
+} from "../../data/mess";
+import { roleLabel } from "../../data/team";
+import { Search, Swords } from "lucide-react";
 
 type Tab =
   | "overview"
   | "checklist"
   | "stakeholders"
   | "promises"
+  | "conflicts"
   | "blockers"
   | "tasks"
   | "approvals"
@@ -108,6 +119,13 @@ export function ClientDrawer() {
   const myActivities = store.activities
     .filter((a) => a.clientId === client.id)
     .sort((a, b) => (a.at < b.at ? 1 : -1));
+  const conflicts = conflictsByClient[client.id] ?? [];
+  const openConflicts = conflicts.filter(
+    (c) => c.status === "open" || c.status === "in_discussion",
+  );
+  const recon = reconciliationByClient[client.id] ?? [];
+  const openRecon = recon.filter((r) => r.status === "open");
+  const aiDetections = aiDetectionsByClient[client.id] ?? [];
 
   const openTasks = myTasks.filter(
     (t) => t.status !== "complete" && t.status !== "skipped",
@@ -404,6 +422,60 @@ export function ClientDrawer() {
           </div>
         )}
 
+        {/* Cross-functional tension banner */}
+        {openConflicts.length > 0 && (
+          <div className="px-5 py-2.5 bg-danger-50/60 border-b border-danger-100">
+            <div className="flex items-start gap-2">
+              <Swords className="h-4 w-4 text-danger-700 mt-0.5 shrink-0" />
+              <div className="flex-1 text-[12.5px] text-danger-800">
+                <span className="font-semibold">
+                  Cross-functional tension:
+                </span>{" "}
+                {openConflicts.slice(0, 2).map((c, i) => (
+                  <span key={c.id}>
+                    {i > 0 && " · "}
+                    <span className="font-semibold">{c.title}</span>{" "}
+                    <span className="text-danger-700/80">
+                      ({c.between.map((b) => roleLabel[b]).join(" ↔ ")})
+                    </span>
+                  </span>
+                ))}
+                {openConflicts.length > 2 &&
+                  ` · +${openConflicts.length - 2} more`}
+              </div>
+              <button
+                type="button"
+                onClick={() => setTab("conflicts")}
+                className="text-[11px] font-semibold text-danger-700 hover:underline"
+              >
+                Resolve
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* "Client says they sent X" reconciliation banner */}
+        {openRecon.length > 0 && (
+          <div className="px-5 py-2 bg-warning-50/40 border-b border-warning-100 flex items-center gap-2 flex-wrap">
+            <Search className="h-3.5 w-3.5 text-warning-600 shrink-0" />
+            <span className="text-[11.5px] text-warning-800">
+              <span className="font-semibold">
+                {openRecon.length} reconciliation
+                {openRecon.length === 1 ? "" : "s"} open:
+              </span>{" "}
+              client says they sent {openRecon[0].what}
+              {openRecon.length > 1 && ` + ${openRecon.length - 1} more`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setTab("conflicts")}
+              className="ml-auto text-[11px] font-semibold text-warning-700 hover:underline"
+            >
+              Reconcile
+            </button>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="px-5 border-b border-ink-200 overflow-x-auto">
           <div className="flex gap-1 -mb-px whitespace-nowrap">
@@ -427,6 +499,14 @@ export function ClientDrawer() {
               {client.promises.length > 0 && (
                 <span className="ml-1 text-[10px] text-ink-400 font-semibold">
                   {client.promises.length}
+                </span>
+              )}
+            </TabBtn>
+            <TabBtn id="conflicts" tab={tab} onClick={() => setTab("conflicts")}>
+              Cross-fn
+              {openConflicts.length + openRecon.length > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center text-[10px] bg-danger-100 text-danger-700 rounded-full px-1.5 font-semibold">
+                  {openConflicts.length + openRecon.length}
                 </span>
               )}
             </TabBtn>
@@ -476,14 +556,35 @@ export function ClientDrawer() {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
-          {tab === "overview" && <OverviewTab client={client} />}
+          {tab === "overview" && (
+            <OverviewTab client={client} aiDetections={aiDetections} />
+          )}
           {tab === "checklist" && <ChecklistTab client={client} />}
           {tab === "stakeholders" && <StakeholdersTab client={client} />}
-          {tab === "promises" && <PromisesTab client={client} salesRep={salesRep} />}
-          {tab === "blockers" && <BlockersTab client={client} />}
-          {tab === "tasks" && <TasksTab client={client} />}
-          {tab === "approvals" && <ApprovalsTab client={client} />}
-          {tab === "documents" && <DocumentsTab client={client} />}
+          {tab === "promises" && (
+            <PromisesTab
+              client={client}
+              salesRep={salesRep}
+              aiDetections={aiDetections}
+            />
+          )}
+          {tab === "conflicts" && (
+            <ConflictsTab
+              client={client}
+              conflicts={conflicts}
+              recon={recon}
+            />
+          )}
+          {tab === "blockers" && (
+            <BlockersTab client={client} aiDetections={aiDetections} />
+          )}
+          {tab === "tasks" && <TasksTab client={client} aiDetections={aiDetections} />}
+          {tab === "approvals" && (
+            <ApprovalsTab client={client} aiDetections={aiDetections} />
+          )}
+          {tab === "documents" && (
+            <DocumentsTab client={client} aiDetections={aiDetections} />
+          )}
           {tab === "internal" && <InternalTab client={client} />}
           {tab === "history" && <HistoryTab client={client} activities={myActivities} />}
         </div>
@@ -538,12 +639,21 @@ function Section({
   );
 }
 
-function OverviewTab({ client }: { client: Client }) {
+function OverviewTab({
+  client,
+  aiDetections,
+}: {
+  client: Client;
+  aiDetections: AIDetection[];
+}) {
   const { openAI, currentUserId } = useAppState();
   const store = useStore();
   const toast = useToast();
   const [draftNote, setDraftNote] = useState("");
   const lastOverride = client.manualOverrides[client.manualOverrides.length - 1];
+  const overviewInsights = aiDetections.filter(
+    (d) => d.surface === "tab_overview" || d.surface === "global",
+  );
 
   return (
     <div className="p-5 space-y-5">
@@ -584,6 +694,11 @@ function OverviewTab({ client }: { client: Client }) {
           Open full assistant →
         </button>
       </div>
+
+      {/* AI detections — operational intelligence layer */}
+      {overviewInsights.length > 0 && (
+        <AIDetectionStrip detections={overviewInsights} />
+      )}
 
       {/* Pinned note */}
       {client.pinnedNote && (
@@ -1073,13 +1188,21 @@ function StakeholdersTab({ client }: { client: Client }) {
 function PromisesTab({
   client,
   salesRep,
+  aiDetections,
 }: {
   client: Client;
   salesRep: TeamMember | undefined;
+  aiDetections: AIDetection[];
 }) {
+  const handoffInsights = aiDetections.filter(
+    (d) => d.surface === "tab_handoff",
+  );
   if (client.promises.length === 0) {
     return (
       <div className="p-5 space-y-4">
+        {handoffInsights.length > 0 && (
+          <AIDetectionStrip detections={handoffInsights} />
+        )}
         <EmptyState
           title="No promises tracked"
           body="When sales hands off a deal, promises made during the sales cycle should be logged here so onboarding can deliver against them."
@@ -1102,6 +1225,9 @@ function PromisesTab({
   }
   return (
     <div className="p-5 space-y-4">
+      {handoffInsights.length > 0 && (
+        <AIDetectionStrip detections={handoffInsights} />
+      )}
       {/* Sales handoff context */}
       <Section title="Sales handoff">
         <div className="rounded-lg border border-ink-200 bg-ink-50/40 p-3 space-y-1">
@@ -1195,13 +1321,25 @@ function PromisesTab({
   );
 }
 
-function BlockersTab({ client }: { client: Client }) {
+function BlockersTab({
+  client,
+  aiDetections,
+}: {
+  client: Client;
+  aiDetections: AIDetection[];
+}) {
   const { currentUserId } = useAppState();
   const store = useStore();
   const toast = useToast();
+  const blockerInsights = aiDetections.filter(
+    (d) => d.surface === "tab_blockers",
+  );
   if (client.blockers.length === 0 && client.dataIssues.length === 0) {
     return (
-      <div className="p-5">
+      <div className="p-5 space-y-4">
+        {blockerInsights.length > 0 && (
+          <AIDetectionStrip detections={blockerInsights} />
+        )}
         <EmptyState
           title="No active blockers"
           body="Flag friction here as it appears — legal review, missing assets, scope ambiguity, etc."
@@ -1211,6 +1349,9 @@ function BlockersTab({ client }: { client: Client }) {
   }
   return (
     <div className="p-5 space-y-4">
+      {blockerInsights.length > 0 && (
+        <AIDetectionStrip detections={blockerInsights} />
+      )}
       {client.blockers.length > 0 && (
         <Section title="Active blockers">
           <ul className="space-y-2">
@@ -1272,15 +1413,25 @@ function BlockersTab({ client }: { client: Client }) {
   );
 }
 
-function TasksTab({ client }: { client: Client }) {
+function TasksTab({
+  client,
+  aiDetections,
+}: {
+  client: Client;
+  aiDetections: AIDetection[];
+}) {
   const { currentUserId, openQuickLog } = useAppState();
   const store = useStore();
   const toast = useToast();
   const myTasks = tasksByClient(client.id);
+  const taskInsights = aiDetections.filter((d) => d.surface === "tab_tasks");
 
   if (myTasks.length === 0) {
     return (
-      <div className="p-5">
+      <div className="p-5 space-y-4">
+        {taskInsights.length > 0 && (
+          <AIDetectionStrip detections={taskInsights} />
+        )}
         <EmptyState
           title="No tasks for this client"
           body="Create client-side or internal tasks here."
@@ -1299,6 +1450,9 @@ function TasksTab({ client }: { client: Client }) {
 
   return (
     <div className="p-5 space-y-4">
+      {taskInsights.length > 0 && (
+        <AIDetectionStrip detections={taskInsights} />
+      )}
       {Object.entries(groups).map(([label, items]) => {
         if (items.length === 0) return null;
         return (
@@ -1398,15 +1552,27 @@ function TasksTab({ client }: { client: Client }) {
   );
 }
 
-function ApprovalsTab({ client }: { client: Client }) {
+function ApprovalsTab({
+  client,
+  aiDetections,
+}: {
+  client: Client;
+  aiDetections: AIDetection[];
+}) {
   const { currentUserId } = useAppState();
   const store = useStore();
   const toast = useToast();
   const my = approvalsByClient(client.id);
+  const approvalInsights = aiDetections.filter(
+    (d) => d.surface === "tab_approvals",
+  );
 
   if (my.length === 0) {
     return (
-      <div className="p-5">
+      <div className="p-5 space-y-4">
+        {approvalInsights.length > 0 && (
+          <AIDetectionStrip detections={approvalInsights} />
+        )}
         <EmptyState
           title="No approvals tracked"
           body="When you need legal, billing, scope, or client signoff — request it here."
@@ -1415,105 +1581,278 @@ function ApprovalsTab({ client }: { client: Client }) {
     );
   }
   return (
-    <div className="p-5 space-y-2">
-      <ul className="space-y-2">
-        {my.map((a) => {
-          const tone: ApprovalStatus = a.status;
-          const toneClass =
-            tone === "approved"
-              ? "text-success-700 bg-success-50 ring-success-100"
-              : tone === "rejected"
-                ? "text-danger-700 bg-danger-50 ring-danger-100"
-                : tone === "needs_info"
-                  ? "text-warning-700 bg-warning-50 ring-warning-100"
-                  : "text-ink-700 bg-ink-100 ring-ink-200";
-          return (
-            <li
-              key={a.id}
-              className="rounded-lg border border-ink-200 p-3 flex items-start gap-3"
-            >
-              <Stamp className="h-4 w-4 text-ink-500 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[13px] font-semibold text-ink-900">
-                    {a.title}
-                  </span>
-                  <span
-                    className={`inline-flex items-center px-1.5 py-0 rounded-md ring-1 ring-inset text-[10.5px] font-semibold ${toneClass}`}
-                  >
-                    {a.status.replace("_", " ")}
-                  </span>
-                  <Badge tone="neutral">{a.type.replace("_", " ")}</Badge>
-                </div>
-                <div className="mt-0.5 text-[11.5px] text-ink-500">
-                  Approver: <span className="text-ink-700">{a.approverName}</span>
-                  {a.approverIsClient && (
-                    <span className="ml-1 text-[10px] uppercase text-warning-700 font-semibold">
-                      client-side
-                    </span>
-                  )}
-                </div>
-                {a.detail && (
-                  <p className="mt-1 text-[12px] text-ink-700">{a.detail}</p>
-                )}
-                {a.riskIfDelayed && (
-                  <p className="mt-1 text-[11.5px] text-warning-700">
-                    ⚠ Risk if delayed: {a.riskIfDelayed}
-                  </p>
-                )}
-                <div className="mt-1 text-[10.5px] text-ink-400">
-                  Requested {relativeTime(a.requestedAt)}
-                </div>
-              </div>
-              {a.status !== "approved" && a.status !== "rejected" && (
-                <div className="flex flex-col gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      store.setApproval({
-                        approvalId: a.id,
-                        status: "approved",
-                        actorId: currentUserId,
-                      });
-                      toast.success(`Approved · ${a.title}`);
-                    }}
-                    className="btn-primary text-[10.5px] py-0.5 px-2"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      store.setApproval({
-                        approvalId: a.id,
-                        status: "needs_info",
-                        actorId: currentUserId,
-                      });
-                      toast.info("Marked needs info");
-                    }}
-                    className="text-[10.5px] text-ink-500 hover:underline"
-                  >
-                    Needs info
-                  </button>
-                </div>
-              )}
-            </li>
-          );
-        })}
+    <div className="p-5 space-y-3">
+      {approvalInsights.length > 0 && (
+        <AIDetectionStrip detections={approvalInsights} />
+      )}
+      <ul className="space-y-2.5">
+        {my.map((a) => (
+          <ApprovalRow
+            key={a.id}
+            approval={a}
+            onApprove={() => {
+              store.setApproval({
+                approvalId: a.id,
+                status: "approved",
+                actorId: currentUserId,
+              });
+              toast.success(`Approved · ${a.title}`);
+            }}
+            onNeedsInfo={() => {
+              store.setApproval({
+                approvalId: a.id,
+                status: "needs_info",
+                actorId: currentUserId,
+              });
+              toast.info("Marked needs info");
+            }}
+          />
+        ))}
       </ul>
     </div>
   );
 }
 
-function DocumentsTab({ client }: { client: Client }) {
+function ApprovalRow({
+  approval: a,
+  onApprove,
+  onNeedsInfo,
+}: {
+  approval: ReturnType<typeof approvalsByClient>[number];
+  onApprove: () => void;
+  onNeedsInfo: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const toneFor: Record<
+    ApprovalStatus,
+    { label: string; cls: string }
+  > = {
+    pending: {
+      label: "Pending",
+      cls: "text-ink-700 bg-ink-100 ring-ink-200",
+    },
+    under_revision: {
+      label: "Under revision",
+      cls: "text-warning-700 bg-warning-50 ring-warning-100",
+    },
+    awaiting_external: {
+      label: "Awaiting external",
+      cls: "text-warning-700 bg-warning-50 ring-warning-100",
+    },
+    approved_verbal: {
+      label: "Approved (verbal only)",
+      cls: "text-warning-700 bg-warning-50 ring-warning-200",
+    },
+    approved: {
+      label: "Approved",
+      cls: "text-success-700 bg-success-50 ring-success-100",
+    },
+    conditionally_approved: {
+      label: "Conditionally approved",
+      cls: "text-brand-700 bg-brand-50 ring-brand-200",
+    },
+    rejected: {
+      label: "Rejected",
+      cls: "text-danger-700 bg-danger-50 ring-danger-100",
+    },
+    needs_info: {
+      label: "Needs info",
+      cls: "text-warning-700 bg-warning-50 ring-warning-100",
+    },
+    escalated: {
+      label: "Escalated",
+      cls: "text-danger-700 bg-danger-50 ring-danger-100",
+    },
+    expired: {
+      label: "Expired",
+      cls: "text-ink-500 bg-ink-100 ring-ink-200",
+    },
+  };
+  const tone = toneFor[a.status];
+  const aging = Math.round(
+    (Date.now() - new Date(a.requestedAt).getTime()) / 86400000,
+  );
+  const slaBreach = a.slaHours && aging * 24 > a.slaHours;
+  const hasThread = (a.comments?.length ?? 0) > 0;
+  return (
+    <li className="rounded-lg border border-ink-200 bg-white">
+      <div className="p-3 flex items-start gap-3">
+        <Stamp className="h-4 w-4 text-ink-500 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] font-semibold text-ink-900">
+              {a.title}
+            </span>
+            <span
+              className={`inline-flex items-center px-1.5 py-0 rounded-md ring-1 ring-inset text-[10.5px] font-semibold ${tone.cls}`}
+            >
+              {tone.label}
+            </span>
+            <Badge tone="neutral">{a.type.replace("_", " ")}</Badge>
+            {a.attempt && a.attempt > 1 && (
+              <Badge tone="warning">Attempt {a.attempt}</Badge>
+            )}
+          </div>
+          <div className="mt-0.5 text-[11.5px] text-ink-500">
+            Approver:{" "}
+            <span className="text-ink-700">{a.approverName}</span>
+            {a.approverIsClient && (
+              <span className="ml-1 text-[10px] uppercase text-warning-700 font-semibold">
+                client-side
+              </span>
+            )}
+            {a.blockingTeam && (
+              <span className="ml-1 text-ink-400">· {a.blockingTeam}</span>
+            )}
+          </div>
+          {a.detail && (
+            <p className="mt-1 text-[12px] text-ink-700">{a.detail}</p>
+          )}
+          {a.conditions && a.conditions.length > 0 && (
+            <ul className="mt-2 space-y-0.5 rounded-md bg-brand-50/40 border border-brand-100 p-2">
+              <li className="text-[10.5px] uppercase tracking-wider font-semibold text-brand-700 mb-0.5">
+                Conditions
+              </li>
+              {a.conditions.map((c, i) => (
+                <li
+                  key={i}
+                  className="text-[12px] text-ink-700 inline-flex items-start gap-1.5"
+                >
+                  <CheckCircle2 className="h-3 w-3 text-brand-600 mt-0.5 shrink-0" />
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {a.status === "approved_verbal" && (
+            <p className="mt-1 text-[11.5px] text-warning-700">
+              ⚠ Verbal only — get this in writing before launch
+            </p>
+          )}
+          {a.riskIfDelayed && (
+            <p className="mt-1 text-[11.5px] text-warning-700">
+              ⚠ Risk if delayed: {a.riskIfDelayed}
+            </p>
+          )}
+          <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+            <span className={slaBreach ? "text-danger-700 font-semibold" : "text-ink-400"}>
+              {aging}d aging
+              {a.slaHours && ` · SLA ${Math.round(a.slaHours / 24)}d`}
+              {slaBreach && " · BREACH"}
+            </span>
+            {hasThread && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="text-[11px] text-brand-700 font-semibold hover:underline inline-flex items-center gap-0.5"
+              >
+                {expanded ? "Hide" : "Show"} {a.comments!.length} comment
+                {a.comments!.length === 1 ? "" : "s"}
+              </button>
+            )}
+          </div>
+        </div>
+        {a.status !== "approved" &&
+          a.status !== "rejected" &&
+          a.status !== "expired" && (
+            <div className="flex flex-col gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={onApprove}
+                className="btn-primary text-[10.5px] py-0.5 px-2"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                onClick={onNeedsInfo}
+                className="text-[10.5px] text-ink-500 hover:underline"
+              >
+                Needs info
+              </button>
+            </div>
+          )}
+      </div>
+      {expanded && hasThread && (
+        <div className="border-t border-ink-100 bg-ink-50/30 px-3 py-2.5">
+          <ul className="space-y-2">
+            {a.comments!.map((c) => {
+              const author = c.authorIsClient ? null : teamById[c.authorId];
+              const kindLabel: Record<
+                NonNullable<typeof c.kind>,
+                { label: string; cls: string }
+              > = {
+                request: { label: "Request", cls: "text-ink-600 bg-ink-100" },
+                revision: {
+                  label: "Revision asked",
+                  cls: "text-warning-700 bg-warning-50",
+                },
+                approval: {
+                  label: "Approval",
+                  cls: "text-success-700 bg-success-50",
+                },
+                rejection: {
+                  label: "Rejection",
+                  cls: "text-danger-700 bg-danger-50",
+                },
+                context: { label: "Context", cls: "text-ink-500 bg-ink-100" },
+              };
+              return (
+                <li
+                  key={c.id}
+                  className="rounded-md bg-white border border-ink-200 p-2.5"
+                >
+                  <div className="flex items-center gap-1.5 text-[10.5px] mb-1">
+                    <span className="font-semibold text-ink-700">
+                      {c.authorIsClient
+                        ? `${a.approverName.split(" ")[0]} · client`
+                        : (author?.name ?? "Internal")}
+                    </span>
+                    {c.kind && (
+                      <span
+                        className={`px-1 py-0 rounded text-[9.5px] uppercase tracking-wider font-bold ${kindLabel[c.kind].cls}`}
+                      >
+                        {kindLabel[c.kind].label}
+                      </span>
+                    )}
+                    <span className="text-ink-400">
+                      · {relativeTime(c.at)}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-ink-800 leading-relaxed">
+                    {c.body}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function DocumentsTab({
+  client,
+  aiDetections,
+}: {
+  client: Client;
+  aiDetections: AIDetection[];
+}) {
   const { currentUserId } = useAppState();
   const store = useStore();
   const toast = useToast();
   const docs = documentsByClient(client.id);
+  const docInsights = aiDetections.filter(
+    (d) => d.surface === "tab_documents",
+  );
 
   if (docs.length === 0) {
     return (
-      <div className="p-5">
+      <div className="p-5 space-y-4">
+        {docInsights.length > 0 && (
+          <AIDetectionStrip detections={docInsights} />
+        )}
         <EmptyState
           title="No documents yet"
           body="Drop in contracts, intake forms, kickoff docs, and assets — they'll appear here."
@@ -1521,95 +1860,242 @@ function DocumentsTab({ client }: { client: Client }) {
       </div>
     );
   }
-
-  const statusTone: Record<DocumentStatus, string> = {
-    missing: "text-warning-700 bg-warning-50 ring-warning-100",
-    pending_review: "text-brand-700 bg-brand-50 ring-brand-100",
-    approved: "text-success-700 bg-success-50 ring-success-100",
-    expired: "text-danger-700 bg-danger-50 ring-danger-100",
-  };
-
   return (
-    <div className="p-5 space-y-2">
-      <ul className="divide-y divide-ink-100 border border-ink-200 rounded-lg overflow-hidden">
+    <div className="p-5 space-y-3">
+      {docInsights.length > 0 && (
+        <AIDetectionStrip detections={docInsights} />
+      )}
+      <ul className="space-y-1.5">
         {docs.map((d) => (
-          <li
+          <DocRow
             key={d.id}
-            className="flex items-center gap-3 px-3 py-2.5 hover:bg-ink-50/40"
-          >
-            <span
-              className={`h-8 w-8 rounded-md flex items-center justify-center ${
-                d.status === "approved"
-                  ? "bg-success-50 text-success-600"
-                  : d.status === "missing"
-                    ? "bg-warning-50 text-warning-600"
-                    : d.status === "expired"
-                      ? "bg-danger-50 text-danger-600"
-                      : "bg-ink-100 text-ink-600"
-              }`}
-            >
-              <Paperclip className="h-3.5 w-3.5" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[13px] font-semibold text-ink-900 truncate">
-                  {d.name}
-                </span>
-                <span
-                  className={`inline-flex items-center px-1.5 py-0 rounded-md ring-1 ring-inset text-[10.5px] font-semibold ${statusTone[d.status]}`}
-                >
-                  {d.status.replace("_", " ")}
-                </span>
-                {d.required && (
-                  <span className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
-                    required
-                  </span>
-                )}
-              </div>
-              <div className="text-[11px] text-ink-500">
-                {d.kind} ·{" "}
-                {d.size ? `${d.size} · ` : ""}
-                {d.uploadedBy
-                  ? `uploaded by ${teamById[d.uploadedBy]?.name.split(" ")[0]}`
-                  : "no upload"}
-                {d.at ? ` · ${relativeTime(d.at)}` : ""}
-                {d.note && ` · ${d.note}`}
-              </div>
-            </div>
-            {d.status === "pending_review" && (
-              <button
-                type="button"
-                onClick={() => {
-                  store.setDocStatus({
-                    docId: d.id,
-                    status: "approved",
-                    actorId: currentUserId,
-                  });
-                  toast.success(`Approved · ${d.name}`);
-                }}
-                className="btn-primary text-[10.5px] py-0.5 px-2"
-              >
-                Approve
-              </button>
-            )}
-            {d.status === "missing" && (
-              <button
-                type="button"
-                className="text-[11px] text-brand-700 font-semibold hover:underline"
-              >
-                <Plus className="h-3 w-3 inline mr-1" />
-                Request
-              </button>
-            )}
-            {d.status === "approved" && (
-              <button className="text-ink-400 hover:text-ink-700">
-                <ExternalLink className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </li>
+            doc={d}
+            onApprove={() => {
+              store.setDocStatus({
+                docId: d.id,
+                status: "approved",
+                actorId: currentUserId,
+              });
+              toast.success(`Approved · ${d.name}`);
+            }}
+          />
         ))}
       </ul>
     </div>
+  );
+}
+
+function DocRow({
+  doc: d,
+  onApprove,
+}: {
+  doc: ReturnType<typeof documentsByClient>[number];
+  onApprove: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const statusTone: Record<DocumentStatus, { label: string; cls: string; icon: string }> = {
+    missing: {
+      label: "Missing",
+      cls: "text-warning-700 bg-warning-50 ring-warning-100",
+      icon: "bg-warning-50 text-warning-600",
+    },
+    pending_review: {
+      label: "Pending review",
+      cls: "text-brand-700 bg-brand-50 ring-brand-100",
+      icon: "bg-brand-50 text-brand-600",
+    },
+    revision_requested: {
+      label: "Revision requested",
+      cls: "text-warning-700 bg-warning-50 ring-warning-100",
+      icon: "bg-warning-50 text-warning-600",
+    },
+    wrong_version: {
+      label: "Wrong version",
+      cls: "text-warning-700 bg-warning-50 ring-warning-200",
+      icon: "bg-warning-50 text-warning-600",
+    },
+    wrong_format: {
+      label: "Wrong format",
+      cls: "text-warning-700 bg-warning-50 ring-warning-200",
+      icon: "bg-warning-50 text-warning-600",
+    },
+    low_quality: {
+      label: "Low quality",
+      cls: "text-warning-700 bg-warning-50 ring-warning-200",
+      icon: "bg-warning-50 text-warning-600",
+    },
+    duplicate: {
+      label: "Possible duplicate",
+      cls: "text-ink-700 bg-ink-100 ring-ink-200",
+      icon: "bg-ink-100 text-ink-600",
+    },
+    client_says_sent: {
+      label: "Client says sent",
+      cls: "text-warning-700 bg-warning-50 ring-warning-100",
+      icon: "bg-warning-50 text-warning-600",
+    },
+    credentials_insecure: {
+      label: "Insecure",
+      cls: "text-danger-700 bg-danger-50 ring-danger-100",
+      icon: "bg-danger-50 text-danger-600",
+    },
+    approved: {
+      label: "Approved",
+      cls: "text-success-700 bg-success-50 ring-success-100",
+      icon: "bg-success-50 text-success-600",
+    },
+    expired: {
+      label: "Expired",
+      cls: "text-danger-700 bg-danger-50 ring-danger-100",
+      icon: "bg-danger-50 text-danger-600",
+    },
+  };
+  const tone = statusTone[d.status];
+  const hasVersions = (d.versions?.length ?? 0) > 1;
+  return (
+    <li className="rounded-lg border border-ink-200 bg-white">
+      <div className="flex items-start gap-3 px-3 py-2.5">
+        <span
+          className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${tone.icon}`}
+        >
+          <Paperclip className="h-3.5 w-3.5" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] font-semibold text-ink-900 truncate">
+              {d.name}
+            </span>
+            <span
+              className={`inline-flex items-center px-1.5 py-0 rounded-md ring-1 ring-inset text-[10.5px] font-semibold ${tone.cls}`}
+            >
+              {tone.label}
+            </span>
+            {d.required && (
+              <span className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold">
+                required
+              </span>
+            )}
+            {d.uploadedByClient && (
+              <span className="text-[10px] uppercase tracking-wider text-brand-700 font-semibold">
+                client upload
+              </span>
+            )}
+          </div>
+          <div className="text-[11px] text-ink-500">
+            {d.kind} ·{" "}
+            {d.size ? `${d.size} · ` : ""}
+            {d.uploadedBy
+              ? `uploaded by ${teamById[d.uploadedBy]?.name.split(" ")[0]}`
+              : d.expectedBy
+                ? `expected ${relativeTime(d.expectedBy)}`
+                : "no upload"}
+            {d.at ? ` · ${relativeTime(d.at)}` : ""}
+          </div>
+          {d.flaggedReason && (
+            <p className="mt-1 text-[11.5px] text-warning-700 italic">
+              ⚠ {d.flaggedReason}
+            </p>
+          )}
+          {d.revisionNotes && (
+            <p className="mt-1 text-[11.5px] text-warning-700 italic">
+              Revision: {d.revisionNotes}
+            </p>
+          )}
+          {d.note && (
+            <p className="mt-1 text-[11.5px] text-ink-500 italic">{d.note}</p>
+          )}
+          {hasVersions && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-1 text-[11px] text-brand-700 font-semibold hover:underline"
+            >
+              {expanded ? "Hide" : "Show"} {d.versions!.length} versions
+            </button>
+          )}
+        </div>
+        {d.status === "pending_review" && (
+          <button
+            type="button"
+            onClick={onApprove}
+            className="btn-primary text-[10.5px] py-0.5 px-2 shrink-0"
+          >
+            Approve
+          </button>
+        )}
+        {(d.status === "missing" || d.status === "client_says_sent") && (
+          <button
+            type="button"
+            className="text-[11px] text-brand-700 font-semibold hover:underline shrink-0"
+          >
+            Re-request
+          </button>
+        )}
+        {d.status === "revision_requested" && (
+          <button
+            type="button"
+            className="text-[11px] text-warning-700 font-semibold hover:underline shrink-0"
+          >
+            Send v2
+          </button>
+        )}
+        {d.status === "credentials_insecure" && (
+          <button
+            type="button"
+            className="text-[11px] text-danger-700 font-semibold hover:underline shrink-0"
+          >
+            Secure resend
+          </button>
+        )}
+        {d.status === "duplicate" && (
+          <button
+            type="button"
+            className="text-[11px] text-ink-700 font-semibold hover:underline shrink-0"
+          >
+            Reconcile
+          </button>
+        )}
+        {d.status === "approved" && (
+          <button className="text-ink-400 hover:text-ink-700 shrink-0">
+            <ExternalLink className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {expanded && hasVersions && (
+        <div className="border-t border-ink-100 bg-ink-50/30 px-3 py-2.5">
+          <ul className="space-y-1">
+            {d.versions!.map((v) => (
+              <li
+                key={v.id}
+                className="flex items-start gap-2.5 text-[12px] text-ink-700 px-2 py-1 rounded-md hover:bg-white"
+              >
+                <span
+                  className={`mt-0.5 h-1.5 w-1.5 rounded-full ${v.current ? "bg-success-500" : "bg-ink-300"}`}
+                />
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {v.versionLabel}{" "}
+                    {v.current && (
+                      <span className="text-[10px] uppercase tracking-wider text-success-700 font-bold ml-1">
+                        current
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10.5px] text-ink-500">
+                    {v.uploadedBy
+                      ? `${teamById[v.uploadedBy]?.name.split(" ")[0]} · `
+                      : ""}
+                    {relativeTime(v.at)}
+                    {v.size && ` · ${v.size}`}
+                    {v.note && ` · ${v.note}`}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </li>
   );
 }
 
@@ -1888,6 +2374,236 @@ function Stat({
         <span className="text-base font-semibold capitalize">{value}</span>
       </div>
       <div className="text-[11px] text-ink-500 mt-1">{sub}</div>
+    </div>
+  );
+}
+
+function AIDetectionStrip({ detections }: { detections: AIDetection[] }) {
+  if (detections.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-brand-200 bg-gradient-to-br from-brand-50/50 to-white p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="h-5 w-5 rounded-md bg-brand-700 flex items-center justify-center">
+          <Sparkles className="h-3 w-3 text-white" />
+        </span>
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-brand-700">
+          AI caught {detections.length}{" "}
+          {detections.length === 1 ? "thing" : "things"}
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {detections.map((d) => (
+          <li key={d.id} className="flex items-start gap-2">
+            <span
+              className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
+                d.weight === "high"
+                  ? "bg-warning-500"
+                  : d.weight === "medium"
+                    ? "bg-brand-500"
+                    : "bg-ink-300"
+              }`}
+            />
+            <span className="text-[12.5px] text-ink-800 leading-relaxed">
+              {d.body}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ConflictsTab({
+  client,
+  conflicts,
+  recon,
+}: {
+  client: Client;
+  conflicts: CrossFunctionalConflict[];
+  recon: ReconciliationItem[];
+}) {
+  const { openAI } = useAppState();
+  if (conflicts.length === 0 && recon.length === 0) {
+    return (
+      <div className="p-5">
+        <EmptyState
+          title="No cross-functional tension"
+          body="When sales, implementation, CSM, or onboarding disagree on scope / timing / responsibility, log it here so it doesn't surface as a launch surprise."
+        />
+      </div>
+    );
+  }
+  const open = conflicts.filter(
+    (c) => c.status === "open" || c.status === "in_discussion",
+  );
+  const resolved = conflicts.filter(
+    (c) => c.status === "resolved" || c.status === "parked",
+  );
+  const openRecon = recon.filter((r) => r.status === "open");
+  const closedRecon = recon.filter((r) => r.status !== "open");
+
+  return (
+    <div className="p-5 space-y-5">
+      <AIHint weight="high">
+        Cross-functional tension is the highest-leverage thing to surface
+        early. Most launch surprises trace back to one of these going
+        un-resolved before go-live.
+      </AIHint>
+
+      {/* Open conflicts */}
+      {open.length > 0 && (
+        <Section title={`Open conflicts (${open.length})`}>
+          <ul className="space-y-2.5">
+            {open.map((c) => (
+              <li
+                key={c.id}
+                className="rounded-lg border border-danger-200 bg-danger-50/30 p-3"
+              >
+                <div className="flex items-start gap-2.5">
+                  <Swords className="h-4 w-4 text-danger-700 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[13px] font-semibold text-ink-900">
+                        {c.title}
+                      </span>
+                      <Badge
+                        tone={c.status === "in_discussion" ? "warning" : "danger"}
+                      >
+                        {c.status === "in_discussion" ? "In discussion" : "Open"}
+                      </Badge>
+                    </div>
+                    <div className="mt-1 text-[11px] text-ink-500 inline-flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-ink-700">
+                        {c.between.map((b) => roleLabel[b]).join(" ↔ ")}
+                      </span>
+                      <span>·</span>
+                      <span>raised {relativeTime(c.at)}</span>
+                      <span>·</span>
+                      <span>
+                        by {teamById[c.raisedBy]?.name.split(" ")[0]}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[12.5px] text-ink-800 leading-relaxed">
+                      {c.detail}
+                    </p>
+                    {c.resolution && (
+                      <p className="mt-1 text-[11.5px] text-ink-700 italic">
+                        Resolution path: {c.resolution}
+                      </p>
+                    )}
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openAI(client.id)}
+                        className="text-[11px] font-semibold text-brand-700 hover:underline inline-flex items-center gap-1"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        AI: draft a resolution proposal
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {/* Reconciliation: client says they sent X */}
+      {openRecon.length > 0 && (
+        <Section
+          title={`"Client says they sent" reconciliation (${openRecon.length})`}
+          right={
+            <span className="text-[11px] text-ink-500">
+              The most awkward category of friction
+            </span>
+          }
+        >
+          <ul className="space-y-2">
+            {openRecon.map((r) => (
+              <li
+                key={r.id}
+                className="rounded-lg border border-warning-200 bg-warning-50/30 p-3"
+              >
+                <div className="flex items-start gap-2.5">
+                  <Search className="h-4 w-4 text-warning-700 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-ink-900">
+                      {r.what}
+                    </div>
+                    <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px]">
+                      <div className="rounded-md bg-white border border-ink-200 p-2">
+                        <div className="text-[10px] uppercase tracking-wider text-ink-400 font-semibold mb-0.5">
+                          Client claim
+                        </div>
+                        <div className="text-ink-800 italic">
+                          "{r.clientClaim}"
+                        </div>
+                      </div>
+                      <div className="rounded-md bg-white border border-ink-200 p-2">
+                        <div className="text-[10px] uppercase tracking-wider text-ink-400 font-semibold mb-0.5">
+                          Our reality
+                        </div>
+                        <div className="text-ink-800">{r.ourReality}</div>
+                      </div>
+                    </div>
+                    <div className="mt-1.5 text-[11px] text-ink-500">
+                      Raised {relativeTime(r.raisedAt)}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="text-[11px] font-semibold text-success-700 hover:underline"
+                      >
+                        Mark found
+                      </button>
+                      <span className="text-ink-300">·</span>
+                      <button
+                        type="button"
+                        className="text-[11px] font-semibold text-brand-700 hover:underline"
+                      >
+                        Resend ask
+                      </button>
+                      <span className="text-ink-300">·</span>
+                      <button
+                        type="button"
+                        className="text-[11px] font-semibold text-ink-500 hover:underline"
+                      >
+                        Defer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {/* Resolved (collapsed feel) */}
+      {(resolved.length > 0 || closedRecon.length > 0) && (
+        <Section title={`Resolved (${resolved.length + closedRecon.length})`}>
+          <ul className="space-y-1.5">
+            {resolved.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-start gap-2 px-2.5 py-1.5 text-[12px] text-ink-600 bg-ink-50/40 rounded-md"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 text-success-600 mt-0.5" />
+                <div>
+                  <span className="font-medium">{c.title}</span>
+                  {c.resolution && (
+                    <span className="text-ink-500 italic">
+                      {" "}
+                      · {c.resolution}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
     </div>
   );
 }

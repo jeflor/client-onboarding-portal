@@ -29,6 +29,7 @@ import {
   activities as seedActivities,
   internalComments as seedComments,
 } from "../data/activities";
+import { extraInternalComments } from "../data/mess";
 
 let nextId = 9000;
 const newId = (prefix: string) => `${prefix}-${++nextId}`;
@@ -111,7 +112,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     ...seedActivities,
   ]);
   const [internalComments, setInternalComments] = useState<InternalComment[]>(
-    () => [...seedComments],
+    () => [...seedComments, ...extraInternalComments],
   );
   const [audit, setAudit] = useState<AuditEvent[]>([]);
 

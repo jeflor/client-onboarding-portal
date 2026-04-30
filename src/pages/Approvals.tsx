@@ -8,7 +8,33 @@ import { Card, CardHeader } from "../components/ui/Card";
 import { Avatar } from "../components/ui/Avatar";
 import { Badge } from "../components/ui/Badge";
 import { fmtMoney } from "../lib/format";
-import type { Approval, ApprovalType } from "../data/types";
+import type { Approval, ApprovalType, ApprovalStatus } from "../data/types";
+
+const statusToneClass: Record<ApprovalStatus, string> = {
+  pending: "text-ink-700 bg-ink-100 ring-ink-200",
+  under_revision: "text-warning-700 bg-warning-50 ring-warning-100",
+  awaiting_external: "text-warning-700 bg-warning-50 ring-warning-100",
+  approved_verbal: "text-warning-700 bg-warning-50 ring-warning-200",
+  approved: "text-success-700 bg-success-50 ring-success-100",
+  conditionally_approved: "text-brand-700 bg-brand-50 ring-brand-200",
+  rejected: "text-danger-700 bg-danger-50 ring-danger-100",
+  needs_info: "text-warning-700 bg-warning-50 ring-warning-100",
+  escalated: "text-danger-700 bg-danger-50 ring-danger-100",
+  expired: "text-ink-500 bg-ink-100 ring-ink-200",
+};
+
+const statusLabel: Record<ApprovalStatus, string> = {
+  pending: "Pending",
+  under_revision: "Under revision",
+  awaiting_external: "Awaiting external",
+  approved_verbal: "Approved (verbal)",
+  approved: "Approved",
+  conditionally_approved: "Conditionally approved",
+  rejected: "Rejected",
+  needs_info: "Needs info",
+  escalated: "Escalated",
+  expired: "Expired",
+};
 
 const typeIcon: Record<ApprovalType, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   legal: ScrollText,
@@ -33,7 +59,9 @@ export function ApprovalsPage() {
   const { openClient, currentUserId } = useAppState();
   const toast = useToast();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"pending" | "all">("pending");
+  const [filter, setFilter] = useState<"pending" | "needs_attention" | "all">(
+    "pending",
+  );
 
   const clientsById = useMemo(
     () => Object.fromEntries(store.clients.map((c) => [c.id, c])),
@@ -41,11 +69,22 @@ export function ApprovalsPage() {
   );
 
   const filtered = store.approvals
-    .filter((a) =>
-      filter === "pending"
-        ? a.status === "pending" || a.status === "needs_info"
-        : true,
-    )
+    .filter((a) => {
+      if (filter === "all") return true;
+      if (filter === "needs_attention")
+        return (
+          a.status === "approved_verbal" ||
+          a.status === "escalated" ||
+          a.status === "expired" ||
+          a.status === "rejected"
+        );
+      // pending
+      return (
+        a.status !== "approved" &&
+        a.status !== "rejected" &&
+        a.status !== "expired"
+      );
+    })
     .filter((a) =>
       query
         ? `${a.title} ${clientsById[a.clientId]?.name ?? ""}`
@@ -78,9 +117,27 @@ export function ApprovalsPage() {
           <p className="text-sm text-ink-500 mt-0.5">
             Sign-offs that gate onboarding progress.{" "}
             <span className="font-semibold text-ink-700">
-              {store.approvals.filter((a) => a.status === "pending" || a.status === "needs_info").length}
+              {
+                store.approvals.filter(
+                  (a) =>
+                    a.status !== "approved" &&
+                    a.status !== "rejected" &&
+                    a.status !== "expired",
+                ).length
+              }
             </span>{" "}
-            pending across the team.
+            in flight ·{" "}
+            <span className="font-semibold text-warning-700">
+              {
+                store.approvals.filter(
+                  (a) =>
+                    a.status === "approved_verbal" ||
+                    a.status === "escalated" ||
+                    a.status === "expired",
+                ).length
+              }
+            </span>{" "}
+            need attention
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -101,7 +158,7 @@ export function ApprovalsPage() {
       </div>
 
       <div className="flex items-center gap-1.5 flex-wrap">
-        {(["pending", "all"] as const).map((f) => (
+        {(["pending", "needs_attention", "all"] as const).map((f) => (
           <button
             key={f}
             type="button"
@@ -112,7 +169,11 @@ export function ApprovalsPage() {
                 : "bg-white border border-ink-200 text-ink-700 hover:bg-ink-50"
             }`}
           >
-            {f === "pending" ? "Pending only" : "All"}
+            {f === "pending"
+              ? "In flight"
+              : f === "needs_attention"
+                ? "Needs attention"
+                : "All"}
           </button>
         ))}
       </div>
@@ -148,19 +209,20 @@ export function ApprovalsPage() {
                             <span className="text-[13px] font-semibold text-ink-900">
                               {a.title}
                             </span>
-                            <Badge
-                              tone={
-                                a.status === "approved"
-                                  ? "success"
-                                  : a.status === "needs_info"
-                                    ? "warning"
-                                    : a.status === "rejected"
-                                      ? "danger"
-                                      : "neutral"
-                              }
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0 rounded-md ring-1 ring-inset text-[10.5px] font-semibold ${statusToneClass[a.status]}`}
                             >
-                              {a.status.replace("_", " ")}
-                            </Badge>
+                              {statusLabel[a.status]}
+                            </span>
+                            {a.attempt && a.attempt > 1 && (
+                              <Badge tone="warning">Attempt {a.attempt}</Badge>
+                            )}
+                            {(a.comments?.length ?? 0) > 0 && (
+                              <span className="text-[10.5px] text-ink-400 inline-flex items-center gap-0.5">
+                                <Stamp className="h-3 w-3" />
+                                {a.comments!.length}
+                              </span>
+                            )}
                           </div>
                           <div className="text-[11.5px] text-ink-500 mt-0.5">
                             {client?.name} · {fmtMoney(client?.contractValue ?? 0)} ·{" "}

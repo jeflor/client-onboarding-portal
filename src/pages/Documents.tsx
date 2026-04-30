@@ -19,8 +19,29 @@ import type { DocumentStatus, DocumentKind } from "../data/types";
 const statusTone: Record<DocumentStatus, string> = {
   missing: "text-warning-700 bg-warning-50 ring-warning-100",
   pending_review: "text-brand-700 bg-brand-50 ring-brand-100",
+  revision_requested: "text-warning-700 bg-warning-50 ring-warning-100",
+  wrong_version: "text-warning-700 bg-warning-50 ring-warning-200",
+  wrong_format: "text-warning-700 bg-warning-50 ring-warning-200",
+  low_quality: "text-warning-700 bg-warning-50 ring-warning-200",
+  duplicate: "text-ink-700 bg-ink-100 ring-ink-200",
+  client_says_sent: "text-warning-700 bg-warning-50 ring-warning-100",
+  credentials_insecure: "text-danger-700 bg-danger-50 ring-danger-100",
   approved: "text-success-700 bg-success-50 ring-success-100",
   expired: "text-danger-700 bg-danger-50 ring-danger-100",
+};
+
+const statusLabel: Record<DocumentStatus, string> = {
+  missing: "Missing",
+  pending_review: "Pending review",
+  revision_requested: "Revision requested",
+  wrong_version: "Wrong version",
+  wrong_format: "Wrong format",
+  low_quality: "Low quality",
+  duplicate: "Possible duplicate",
+  client_says_sent: "Client says sent",
+  credentials_insecure: "Insecure",
+  approved: "Approved",
+  expired: "Expired",
 };
 
 const kindLabel: Record<DocumentKind, string> = {
@@ -74,7 +95,21 @@ export function DocumentsPage() {
 
   const counts = {
     missing: store.documents.filter((d) => d.status === "missing").length,
-    pending_review: store.documents.filter((d) => d.status === "pending_review").length,
+    pending_review: store.documents.filter(
+      (d) => d.status === "pending_review",
+    ).length,
+    flagged: store.documents.filter(
+      (d) =>
+        d.status === "wrong_version" ||
+        d.status === "wrong_format" ||
+        d.status === "low_quality" ||
+        d.status === "duplicate" ||
+        d.status === "credentials_insecure" ||
+        d.status === "revision_requested",
+    ).length,
+    client_says_sent: store.documents.filter(
+      (d) => d.status === "client_says_sent",
+    ).length,
     approved: store.documents.filter((d) => d.status === "approved").length,
     expired: store.documents.filter((d) => d.status === "expired").length,
   };
@@ -113,25 +148,27 @@ export function DocumentsPage() {
       </div>
 
       {/* Status summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {(
           [
-            { id: "missing", label: "Missing", count: counts.missing, tone: "text-warning-700 bg-warning-50/70" },
-            { id: "pending_review", label: "Pending review", count: counts.pending_review, tone: "text-brand-700 bg-brand-50/70" },
-            { id: "approved", label: "Approved", count: counts.approved, tone: "text-success-700 bg-success-50/70" },
-            { id: "expired", label: "Expired", count: counts.expired, tone: "text-danger-700 bg-danger-50/70" },
-          ] as const
+            { id: "missing" as const, label: "Missing", count: counts.missing, tone: "text-warning-700 bg-warning-50/70", filter: "missing" as const },
+            { id: "client_says_sent" as const, label: "'Client says sent'", count: counts.client_says_sent, tone: "text-warning-700 bg-warning-50/70", filter: "client_says_sent" as const },
+            { id: "flagged" as const, label: "Flagged", count: counts.flagged, tone: "text-warning-700 bg-warning-50/70", filter: "all" as const },
+            { id: "pending_review" as const, label: "Pending review", count: counts.pending_review, tone: "text-brand-700 bg-brand-50/70", filter: "pending_review" as const },
+            { id: "approved" as const, label: "Approved", count: counts.approved, tone: "text-success-700 bg-success-50/70", filter: "approved" as const },
+            { id: "expired" as const, label: "Expired", count: counts.expired, tone: "text-danger-700 bg-danger-50/70", filter: "expired" as const },
+          ]
         ).map((s) => (
           <button
             key={s.id}
             type="button"
             onClick={() =>
               setStatusFilter((c) =>
-                c === s.id ? "all" : (s.id as DocumentStatus),
+                c === s.filter ? "all" : (s.filter as DocumentStatus),
               )
             }
             className={`text-left rounded-lg border border-ink-200 p-3 hover:border-brand-300 transition-colors ${
-              statusFilter === s.id ? "ring-2 ring-brand-300" : ""
+              statusFilter === s.filter ? "ring-2 ring-brand-300" : ""
             }`}
           >
             <div className="h-eyebrow">{s.label}</div>
@@ -182,7 +219,17 @@ export function DocumentsPage() {
                           </span>
                         )}
                       </div>
-                      {d.note && (
+                      {d.flaggedReason && (
+                        <div className="mt-0.5 text-[11px] text-warning-700 italic">
+                          ⚠ {d.flaggedReason}
+                        </div>
+                      )}
+                      {d.revisionNotes && (
+                        <div className="mt-0.5 text-[11px] text-warning-700 italic">
+                          Revision: {d.revisionNotes}
+                        </div>
+                      )}
+                      {d.note && !d.flaggedReason && !d.revisionNotes && (
                         <div className="mt-0.5 text-[11px] text-ink-500 italic">
                           {d.note}
                         </div>
@@ -203,7 +250,7 @@ export function DocumentsPage() {
                       <span
                         className={`inline-flex items-center px-1.5 py-0.5 rounded-md ring-1 ring-inset text-[11px] font-semibold ${statusTone[d.status]}`}
                       >
-                        {d.status.replace("_", " ")}
+                        {statusLabel[d.status]}
                       </span>
                     </td>
                     <td className="table-cell text-[12px]">

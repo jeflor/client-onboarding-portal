@@ -169,9 +169,24 @@ export type ApprovalType =
 
 export type ApprovalStatus =
   | "pending"
-  | "approved"
+  | "under_revision"
+  | "awaiting_external"
+  | "approved_verbal" // approved verbally but not in writing — risky
+  | "approved" // fully approved, written
+  | "conditionally_approved"
   | "rejected"
-  | "needs_info";
+  | "needs_info"
+  | "escalated"
+  | "expired";
+
+export type ApprovalComment = {
+  id: string;
+  authorId: string;
+  authorIsClient?: boolean;
+  body: string;
+  at: string;
+  kind?: "request" | "revision" | "approval" | "rejection" | "context";
+};
 
 export type Approval = {
   id: string;
@@ -185,9 +200,37 @@ export type Approval = {
   status: ApprovalStatus;
   riskIfDelayed?: string;
   detail?: string;
+  // Operational depth
+  conditions?: string[]; // for conditionally_approved
+  blockingTeam?: string; // "Legal", "Billing", "Procurement", etc.
+  slaHours?: number; // expected SLA
+  comments?: ApprovalComment[]; // back-and-forth thread
+  attempt?: number; // 2nd attempt, 3rd, etc. — sometimes approvals get re-submitted
+  reopenedAt?: string; // if previously approved then reopened
 };
 
-export type DocumentStatus = "missing" | "pending_review" | "approved" | "expired";
+export type DocumentStatus =
+  | "missing"
+  | "pending_review"
+  | "revision_requested" // we sent it back for re-upload
+  | "wrong_version"
+  | "wrong_format"
+  | "low_quality" // logo too low-res, watermarked, etc.
+  | "duplicate" // multiple uploads of same thing, can't tell which is current
+  | "client_says_sent" // client claims they sent it but we can't find it
+  | "credentials_insecure" // sent in plain text, needs secure resend
+  | "approved"
+  | "expired";
+
+export type DocumentVersion = {
+  id: string;
+  versionLabel: string; // "v1", "v2-draft", "v3-final-FINAL"
+  uploadedBy?: string;
+  at: string;
+  size?: string;
+  note?: string;
+  current?: boolean;
+};
 
 export type DocumentKind =
   | "contract"
@@ -212,6 +255,12 @@ export type ClientDocument = {
   size?: string;
   required: boolean;
   note?: string;
+  // Operational depth
+  versions?: DocumentVersion[];
+  revisionNotes?: string; // why we sent it back
+  uploadedByClient?: boolean; // distinguish client uploads from internal
+  expectedBy?: string; // if missing, when we expected it
+  flaggedReason?: string; // for low_quality / wrong_format etc.
 };
 
 export type ActivityKind =
@@ -279,6 +328,61 @@ export type AIInsight = {
   body: string;
   weight: "low" | "medium" | "high";
   topic: "risk" | "client" | "scope" | "timing" | "blocker" | "handoff";
+};
+
+// Cross-functional tension — what makes onboarding software believable
+export type ConflictTopic =
+  | "scope_mismatch"
+  | "promise_vs_package"
+  | "launch_risk_disagreement"
+  | "missing_requirement"
+  | "billing_mismatch"
+  | "stakeholder_dispute"
+  | "timeline_disagreement"
+  | "responsibility_unclear";
+
+export type ConflictStatus = "open" | "in_discussion" | "resolved" | "parked";
+
+export type CrossFunctionalConflict = {
+  id: string;
+  clientId: string;
+  topic: ConflictTopic;
+  title: string; // short
+  detail: string; // longer
+  between: Role[]; // teams in conflict
+  raisedBy: string; // member id
+  at: string;
+  status: ConflictStatus;
+  resolution?: string;
+};
+
+// "Client says they sent X but we don't have it" reconciliation
+export type ReconciliationItem = {
+  id: string;
+  clientId: string;
+  what: string; // "intake form", "Q1 brand kit", "DNS access"
+  clientClaim: string; // what they say
+  ourReality: string; // what we actually have
+  raisedAt: string;
+  status: "open" | "found" | "resent" | "deferred";
+};
+
+// AI detections — operational intelligence that catches things humans miss
+export type AIDetection = {
+  id: string;
+  clientId: string;
+  kind:
+    | "scope_mismatch"
+    | "missing_dependency"
+    | "stakeholder_gap"
+    | "promise_conflict"
+    | "billing_risk"
+    | "timing_warning"
+    | "redundant_artifact";
+  body: string;
+  weight: "low" | "medium" | "high";
+  surface: "tab_overview" | "tab_handoff" | "tab_documents" | "tab_approvals" | "tab_blockers" | "tab_tasks" | "global";
+  detectedAt: string;
 };
 
 export type ClientFlag =
